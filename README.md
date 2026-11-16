@@ -2,7 +2,7 @@
 
 ## What it does
 
-Lakeshore Bike Share wants to guess how many bikes people will rent **next hour**. This project trains a small PyTorch neural network to make that guess from the hour, weather, weekend flag, and station type. It checks whether the network beats two simpler methods instead of assuming that fancy AI is automatically best.
+Lakeshore Bike Share wants to guess how many bikes people will rent **next hour**. This project trains a PyTorch neural network to make that guess from the hour, weather, weekend flag, and station type. It checks whether the network beats two simpler methods instead of assuming that fancy AI is automatically best.
 
 Imagine I am practicing math problems. The model guesses, checks its mistake, and makes a small change before trying again. This repeated practice is the **training loop**.
 
@@ -30,7 +30,7 @@ python train.py
 python -m pytest
 ```
 
-The **single command** `python train.py` recreates every file in `reports/`. The submitted reports are already included so your instructor can inspect them without running code. The tests do not require any external data or internet access.
+The **single command** `python train.py` recreates every file in `reports/`. The tests do not require any external data or internet access.
 
 ## Data and split
 
@@ -99,5 +99,5 @@ The full numbers (including both baselines' MSE) are in `reports/metrics.json`. 
 
 ## Limitations
 
-This is **made-up learning data**, not real Lakeshore Bike Share records. Real demand can also depend on holidays, school breaks, sporting events, bike availability, maintenance, and sudden local events, which are not included. The model predicts a typical count and cannot promise an exact number, explain cause and effect, or guarantee enough bikes for every rider. Planners should **not** treat its guesses as a safety guarantee or replace real-world checks with them. Test performance on real collected data before using predictions to move actual bikes.
+Real demand can depend on holidays, school breaks, sporting events, bike availability, maintenance, and sudden local events, which are not included. The model predicts a typical count and cannot promise an exact number, explain cause and effect, or guarantee enough bikes for every rider. 
 
