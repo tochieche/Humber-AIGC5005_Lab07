@@ -171,3 +171,99 @@ def do_experiment(prepared, name, lr, width, batch_size, epochs=EPOCHS):
         "final_val_loss": history[-1]["val_loss"],
     }
     return model, history, result
+
+
+def main():
+    REPORTS.mkdir(exist_ok=True)
+    set_seed()
+    frame = make_rentals()
+    prepared = prepare_data(frame, seed=SEED)
+    plot_hour_data(frame, REPORTS / "rentals_by_hour.png")
+
+    # Each extra run changes exactly ONE setting compared with main.
+    settings = [
+        ("main", 0.003, 32, 64),
+        ("slow_learning", 0.0001, 32, 64),
+        ("wide_network", 0.003, 128, 64),
+    ]
+    experiments = []
+    main_model = None
+    main_history = None
+    main_best_epoch = None
+    for name, lr, width, batch_size in settings:
+        model, history, result = do_experiment(
+            prepared, name, lr, width, batch_size
+        )
+        experiments.append(result)
+        plot_curves(
+            history,
+            result["best_epoch"],
+            REPORTS / f"{name}_curves.png",
+            f"{name.replace('_', ' ').title()}: training vs validation",
+        )
+        print(
+            f"{name}: best epoch={result['best_epoch']}, "
+            f"validation MAE={result['best_val_mae']:.3f} bikes"
+        )
+        if name == "main":
+            main_model = model
+            main_history = history
+            main_best_epoch = result["best_epoch"]
+
+    plot_curves(
+        main_history,
+        main_best_epoch,
+        REPORTS / "learning_curves.png",
+        "Main network: training vs validation",
+    )
+    write_csv(
+        REPORTS / "history.csv",
+        main_history,
+        ["epoch", "train_loss", "val_loss", "val_mae"],
+    )
+    write_csv(
+        REPORTS / "experiments.csv",
+        experiments,
+        list(experiments[0]),
+    )
+
+    # Pick by VALIDATION only. Do not use test rows for model selection.
+    chosen_run = min(experiments, key=lambda run: run["best_val_loss"])
+    if chosen_run["run"] == "main":
+        chosen_model = main_model
+    else:
+        chosen_model, _, _ = do_experiment(
+            prepared,
+            chosen_run["run"],
+            chosen_run["learning_rate"],
+            chosen_run["hidden_width"],
+            chosen_run["batch_size"],
+        )
+    _, val_loader, test_loader = make_loaders(prepared)
+    selected_val = run_epoch(chosen_model, val_loader, torch.nn.MSELoss())
+    # Test is used ONCE at the end, after choosing the network.
+    selected_test = run_epoch(chosen_model, test_loader, torch.nn.MSELoss())
+    baselines = baseline_results(prepared)
+    baselines["Neural network"] = {
+        "validation_mae": selected_val["mae"],
+        "test_mae": selected_test["mae"],
+        "validation_mse": selected_val["loss"],
+        "test_mse": selected_test["loss"],
+    }
+    metrics = {
+        "seed": SEED,
+        "split": {"train": 3600, "validation": 1200, "test": 1200},
+        "selection_criterion": "lowest validation MSE",
+        "selected_network": chosen_run["run"],
+        "baseline_and_network_metrics": baselines,
+    }
+    (REPORTS / "metrics.json").write_text(
+        json.dumps(metrics, indent=2) + "\n", encoding="utf-8"
+    )
+    print("Final selected model:", chosen_run["run"])
+    print("Final test MAE:", round(selected_test["mae"], 3), "bikes")
+    return metrics, experiments
+
+
+if __name__ == "__main__":
+    main()
