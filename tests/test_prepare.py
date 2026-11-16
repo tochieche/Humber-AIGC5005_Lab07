@@ -21,3 +21,10 @@ def test_split_sizes_and_no_overlap():
     assert set(train.index).isdisjoint(val.index)
     assert set(train.index).isdisjoint(test.index)
     assert set(val.index).isdisjoint(test.index)
+
+
+def test_scaler_fitted_only_on_training(sample):
+    x_train = sample.train_dataset.features.numpy()[:, :5]
+    x_val = sample.val_dataset.features.numpy()[:, :5]
+    assert np.allclose(x_train.mean(axis=0), 0, atol=1e-5)
+    assert not np.allclose(x_val.mean(axis=0), 0, atol=1e-5)
