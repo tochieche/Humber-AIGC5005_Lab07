@@ -35,3 +35,26 @@ def test_network_can_memorize_one_small_batch():
         run_epoch(net, loader, loss_fn, optimizer)
     end = run_epoch(net, loader, loss_fn)["loss"]
     assert end < start * 0.01
+
+
+def test_validation_does_not_change_weights(sample):
+    set_seed()
+    net = BikeNet(sample.input_size)
+    before = copy.deepcopy(net.state_dict())
+    _, val_loader, _ = make_loaders(sample)
+    run_epoch(net, val_loader, torch.nn.MSELoss())
+    assert all(
+        torch.equal(net.state_dict()[key], value) for key, value in before.items()
+    )
+
+
+def test_training_history_and_best_weights(sample):
+    set_seed()
+    net = BikeNet(sample.input_size)
+    train_loader, val_loader, _ = make_loaders(sample)
+    history, best_epoch = train_many(net, train_loader, val_loader, epochs=6)
+    assert len(history) == 6
+    assert set(history[0]) == {"epoch", "train_loss", "val_loss", "val_mae"}
+    assert best_epoch == min(history, key=lambda row: row["val_loss"])["epoch"]
+    actual = run_epoch(net, val_loader, torch.nn.MSELoss())["loss"]
+    assert abs(actual - history[best_epoch - 1]["val_loss"]) < 1e-4
