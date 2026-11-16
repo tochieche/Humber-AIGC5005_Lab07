@@ -92,3 +92,82 @@ def write_csv(path, rows, columns):
         writer = csv.DictWriter(file, fieldnames=columns)
         writer.writeheader()
         writer.writerows(rows)
+
+def plot_curves(history, best_epoch, path, title):
+    epochs = [row["epoch"] for row in history]
+    plt.figure(figsize=(8, 5))
+    plt.plot(epochs, [row["train_loss"] for row in history], label="Training MSE")
+    plt.plot(epochs, [row["val_loss"] for row in history], label="Validation MSE")
+    plt.axvline(best_epoch, linestyle="--", label=f"Best epoch: {best_epoch}")
+    plt.xlabel("Epoch (one complete pass through training examples)")
+    plt.ylabel("Mean squared error (lower is better)")
+    plt.title(title)
+    plt.grid(alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(path, dpi=150)
+    plt.close()
+
+
+def plot_hour_data(frame, path):
+    """Show why one straight line struggles with busy morning/evening hours."""
+    hourly = frame.groupby("hour")[TARGET].mean()
+    plt.figure(figsize=(8, 4))
+    plt.plot(hourly.index, hourly.values, marker="o")
+    plt.xlabel("Hour of the day")
+    plt.ylabel("Mean bikes rented")
+    plt.title("Average bike demand changes during the day (all stations)")
+    plt.xticks(range(0, 24, 2))
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(path, dpi=150)
+    plt.close()
+
+
+def baseline_results(prepared):
+    """Compare with (1) one constant number and (2) one straight-line model."""
+    train_y = prepared.train_frame[TARGET].to_numpy()
+    val_y = prepared.val_frame[TARGET].to_numpy()
+    test_y = prepared.test_frame[TARGET].to_numpy()
+    training_mean = float(train_y.mean())
+    mean_val = np.full_like(val_y, training_mean, dtype=float)
+    mean_test = np.full_like(test_y, training_mean, dtype=float)
+    straight_line = LinearRegression()
+    straight_line.fit(
+        prepared.train_dataset.features.numpy(), train_y
+    )  # Only train rows!
+    linear_val = straight_line.predict(prepared.val_dataset.features.numpy())
+    linear_test = straight_line.predict(prepared.test_dataset.features.numpy())
+    results = {}
+    for name, predictions_val, predictions_test in (
+        ("Training mean", mean_val, mean_test),
+        ("Linear regression", linear_val, linear_test),
+    ):
+        results[name] = {
+            "validation_mae": float(mean_absolute_error(val_y, predictions_val)),
+            "test_mae": float(mean_absolute_error(test_y, predictions_test)),
+            "validation_mse": float(mean_squared_error(val_y, predictions_val)),
+            "test_mse": float(mean_squared_error(test_y, predictions_test)),
+        }
+    return results
+
+def do_experiment(prepared, name, lr, width, batch_size, epochs=EPOCHS):
+    # Start every experiment at the same seed to make comparisons fair.
+    set_seed(SEED)
+    train_loader, val_loader, _ = make_loaders(prepared, batch_size, SEED)
+    model = BikeNet(prepared.input_size, hidden_size=width)
+    history, best_epoch = train_many(model, train_loader, val_loader, epochs, lr)
+    best = history[best_epoch - 1]
+    result = {
+        "run": name,
+        "learning_rate": lr,
+        "hidden_width": width,
+        "batch_size": batch_size,
+        "epochs": epochs,
+        "best_epoch": best_epoch,
+        "best_val_mae": best["val_mae"],
+        "best_val_loss": best["val_loss"],
+        "final_train_loss": history[-1]["train_loss"],
+        "final_val_loss": history[-1]["val_loss"],
+    }
+    return model, history, result
