@@ -28,3 +28,12 @@ def test_scaler_fitted_only_on_training(sample):
     x_val = sample.val_dataset.features.numpy()[:, :5]
     assert np.allclose(x_train.mean(axis=0), 0, atol=1e-5)
     assert not np.allclose(x_val.mean(axis=0), 0, atol=1e-5)
+
+
+def test_training_shuffle_repeatable(sample):
+    a, val_a, test_a = make_loaders(sample, batch_size=8, seed=123)
+    b, val_b, test_b = make_loaders(sample, batch_size=8, seed=123)
+    assert torch.equal(next(iter(a))[0], next(iter(b))[0])
+    assert not torch.equal(next(iter(a))[0], sample.train_dataset.features[:8])
+    assert torch.equal(next(iter(val_a))[0], next(iter(val_b))[0])
+    assert torch.equal(next(iter(test_a))[0], next(iter(test_b))[0])
