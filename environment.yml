@@ -1,0 +1,10 @@
+name: aigc-5005-module07-torch
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -r requirements-dev.txt
