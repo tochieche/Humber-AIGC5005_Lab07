@@ -1,6 +1,9 @@
 """Run the whole project with one command: python train.py.
 
-The network guesses a bike count, checks how wrong it was, and gently changes its numbers. It does this many times.
+The network guesses a bike count, checks how wrong it was, 
+and gently changes its numbers. 
+
+It does this many times.
 """
 
 import copy
@@ -25,6 +28,7 @@ REPORTS = Path(__file__).resolve().parent / "reports"
 SEED = 42
 EPOCHS = 90
 
+
 def set_seed(seed=SEED):
     """Make the random choices repeatable so experiments are fair."""
     random.seed(seed)
@@ -32,8 +36,8 @@ def set_seed(seed=SEED):
     torch.manual_seed(seed)
     torch.set_num_threads(1)  # Reproducible and fast for this small CPU lab.
     torch.use_deterministic_algorithms(True)
-    
-    
+
+
 def run_epoch(model, loader, loss_fn, optimizer=None):
     """Train one pass if optimizer is given; otherwise only check accuracy.
 
@@ -60,6 +64,7 @@ def run_epoch(model, loader, loss_fn, optimizer=None):
         total_absolute_error += torch.sum(torch.abs(predicted - actual)).item()
         count += actual.numel()
     return {"loss": total_squared_error / count, "mae": total_absolute_error / count}
+
 
 def train_many(model, train_loader, val_loader, epochs=EPOCHS, lr=0.003):
     """Practice for epochs rounds; restore the best validation weights."""
@@ -92,6 +97,7 @@ def write_csv(path, rows, columns):
         writer = csv.DictWriter(file, fieldnames=columns)
         writer.writeheader()
         writer.writerows(rows)
+
 
 def plot_curves(history, best_epoch, path, title):
     epochs = [row["epoch"] for row in history]
@@ -151,6 +157,7 @@ def baseline_results(prepared):
         }
     return results
 
+
 def do_experiment(prepared, name, lr, width, batch_size, epochs=EPOCHS):
     # Start every experiment at the same seed to make comparisons fair.
     set_seed(SEED)
@@ -191,9 +198,7 @@ def main():
     main_history = None
     main_best_epoch = None
     for name, lr, width, batch_size in settings:
-        model, history, result = do_experiment(
-            prepared, name, lr, width, batch_size
-        )
+        model, history, result = do_experiment(prepared, name, lr, width, batch_size)
         experiments.append(result)
         plot_curves(
             history,

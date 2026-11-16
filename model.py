@@ -2,6 +2,7 @@
 
 from torch import nn
 
+
 class BikeNet(nn.Module):
     """Turn 8 input numbers into ONE predicted bike-rental count."""
 

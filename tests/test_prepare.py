@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 
@@ -13,6 +12,7 @@ def test_dataset_shape_dtype_and_length(sample):
     assert answer.shape == (1,)
     assert features.dtype == torch.float32
     assert answer.dtype == torch.float32
+
 
 def test_split_sizes_and_no_overlap():
     train, val, test = make_splits(make_rentals(), seed=42)
